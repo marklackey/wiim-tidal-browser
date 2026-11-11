@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.tidal-session.json
+.wiim-device.json
+.wiim-device.tmp
+*.pyc
+dist/
+build/
+*.egg-info/
+*.spec
+tidal-session.json
+device.json
+server.log
+.DS_Store

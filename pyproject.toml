@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wiim-tidal-browser"
+version = "0.1.7"
+description = "A local TIDAL catalog browser and WiiM player"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = ["Flask>=3.1,<4", "tidalapi>=0.8.11,<1", "waitress>=3.0.2,<4"]
+
+[project.scripts]
+wiim-tidal = "wiim_tidal.cli:main"
+
+[tool.setuptools.package-data]
+wiim_tidal = ["templates/*.html", "static/*"]

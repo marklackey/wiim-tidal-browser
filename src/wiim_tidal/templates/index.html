@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Hi-Res Finder · WiiM + TIDAL</title>
+    <meta name="local-token" content="{{ token }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body data-device="unselected">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <aside class="sidebar" aria-label="Library">
+        <a class="brand" href="#main">
+            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span><strong>Hi-Res Finder</strong><small>WiiM + TIDAL</small></span>
+        </a>
+        <nav class="library-nav" aria-label="Main navigation">
+            <a id="exploreNav" href="#main" aria-current="page"><span class="nav-icon icon-search" aria-hidden="true"></span>Explore</a>
+            <button id="recents" type="button"><span class="nav-icon" aria-hidden="true">◷</span>Recents</button>
+            <button id="openSetup" type="button" aria-controls="setup" aria-expanded="false"><span class="nav-icon" aria-hidden="true">⚙</span>Setup</button>
+        </nav>
+        <div class="sidebar-status" aria-label="Connections">
+            <div class="connection-row" id="tidalConnectionCard">
+                <strong>TIDAL</strong>
+                <span class="connection-state" id="connection" role="status">Checking…</span>
+            </div>
+            <div class="connection-row" id="wiimConnectionCard">
+                <strong id="wiimLabel">WiiM</strong>
+                <span class="connection-state" id="wiimConnection" role="status">Checking…</span>
+            </div>
+        </div>
+    </aside>
+
+    <main id="main" tabindex="-1">
+        <section id="searchHero" class="hero" aria-labelledby="searchHeading">
+            <div class="record-art" aria-hidden="true"></div>
+            <div class="hero-content">
+                <h1 id="searchHeading">Find your next listen.</h1>
+                <p>Explore TIDAL releases and play them on your WiiM.</p>
+                <form id="searchForm" class="search-form" role="search">
+                    <label class="search-field">
+                        <span class="icon-search" aria-hidden="true"></span>
+                        <span class="sr-only">Search TIDAL</span>
+                        <input id="query" type="search" placeholder="Search albums, tracks, or artists" maxlength="150" autocomplete="off" required>
+                    </label>
+                    <button id="searchButton" type="submit">Search</button>
+                    <div id="searchTypes" class="search-types" role="group" aria-label="Search categories">
+                        <button type="button" data-search-type="album" aria-pressed="true">Albums</button>
+                        <button type="button" data-search-type="track" aria-pressed="false">Tracks</button>
+                        <button type="button" data-search-type="artist" aria-pressed="true">Artists</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section id="setup" class="details setup" aria-labelledby="setupHeading" hidden>
+            <div class="section-heading">
+                <h2 id="setupHeading" tabindex="-1">Set up WiiM TIDAL</h2>
+                <button id="closeSetup" class="secondary" type="button">Close setup</button>
+            </div>
+            <div class="setup-grid">
+                <section class="setup-card" aria-labelledby="tidalHeading">
+                    <div class="setup-card-heading"><h3 id="tidalHeading">TIDAL account</h3><span class="setup-state" id="tidalSetupState">Checking…</span></div>
+                    <p id="tidalSetupStatus" class="muted" role="status">Sign in with your TIDAL account.</p>
+                    <button id="startLogin" class="secondary" type="button">Connect TIDAL</button>
+                    <div id="loginInstructions" hidden>
+                        <p><a id="loginLink" target="_blank" rel="noopener noreferrer">Open TIDAL sign-in ↗</a></p>
+                        <p class="muted">After signing in, copy the address of the final page, even if TIDAL shows an “Oops” message.</p>
+                        <form id="loginForm" class="stack-form">
+                            <label for="redirectUrl">TIDAL redirect URL</label>
+                            <input id="redirectUrl" type="url" placeholder="Paste the full URL" autocomplete="off" required>
+                            <button type="submit">Finish login</button>
+                        </form>
+                    </div>
+                </section>
+                <section class="setup-card" aria-labelledby="wiimHeading">
+                    <div class="setup-card-heading"><h3 id="wiimHeading">WiiM player</h3><span class="setup-state" id="wiimSetupState">Not selected</span></div>
+                    <p id="wiimSetupStatus" class="muted">Connect your Mac and WiiM to the same network.</p>
+                    <p id="wiimConnectionHelp" class="feedback error" role="status"></p>
+                    <button id="discoverWiim" class="secondary" type="button">Discover WiiM</button>
+                    <p id="discoveryStatus" class="feedback muted" role="status"></p>
+                    <div id="devicePicker" class="stack-form" hidden>
+                        <label for="wiimDevices">Choose a WiiM</label>
+                        <select id="wiimDevices"></select>
+                        <button id="connectWiim" type="button">Connect</button>
+                    </div>
+                    <details class="manual-settings">
+                        <summary>Enter address manually</summary>
+                        <form id="manualDevice" class="stack-form">
+                            <div class="address-fields">
+                                <label for="manualHost">WiiM IPv4 address<input id="manualHost" placeholder="192.168.1.20" required></label>
+                                <label for="manualPort">UPnP port<input id="manualPort" type="number" min="1" max="65535" value="49152" required></label>
+                            </div>
+                            <button type="submit">Save address</button>
+                        </form>
+                    </details>
+                    <p id="manualStatus" class="feedback muted" role="status"></p>
+                </section>
+            </div>
+            <div class="setup-footer">
+                <span class="muted">Local server</span>
+                <button id="stopServer" class="ghost" type="button">Stop server</button>
+            </div>
+        </section>
+
+        <div id="status" class="status" role="status"></div>
+        <section id="homeRecents" class="home-recents" aria-labelledby="recentHomeHeading" hidden>
+            <div class="section-heading"><h2 id="recentHomeHeading">Recently played</h2><button id="allRecents" class="ghost" type="button">View history</button></div>
+            <div id="recentShelf" class="recent-shelf"></div>
+        </section>
+        <section id="searchResults" aria-labelledby="resultsHeading" hidden>
+            <div class="section-heading results-heading">
+                <div><h2 id="resultsHeading">Search results</h2><p id="resultCount" class="muted" role="status"></p></div>
+                <details id="groupActions" class="group-actions">
+                    <summary>View options</summary>
+                    <div>
+                        <button id="expandResults" type="button" class="ghost">Expand groups</button>
+                        <button id="collapseResults" type="button" class="ghost">Collapse groups</button>
+                    </div>
+                </details>
+            </div>
+            <div id="resultControls" class="result-controls" hidden>
+                <label>Artist<select id="artistFilter"><option value="">All artists</option></select></label>
+                <label>Album<select id="albumFilter"><option value="">All albums</option></select></label>
+                <label class="quality-filter"><input id="hiResOnly" type="checkbox">Hi-Res only</label>
+                <button id="resetFilters" class="ghost" type="button" hidden>Clear filters</button>
+            </div>
+            <div id="results"></div>
+        </section>
+    </main>
+
+    <footer class="player" aria-label="WiiM player">
+        <div class="now-playing">
+            <div class="player-art" aria-hidden="true"><span>♫</span><img id="playingArt" alt="" hidden></div>
+            <div class="player-copy">
+                <div id="playingState" class="player-state">WiiM playback</div>
+                <strong id="playingTitle">Checking WiiM…</strong>
+                <div id="playingArtist" class="muted"></div>
+                <div id="playingAudio" class="muted audio-info"></div>
+            </div>
+        </div>
+        <button id="playerSetup" class="secondary player-setup" type="button">Set up WiiM</button>
+        <div class="transport">
+            <div class="transport-buttons">
+                <button type="button" class="icon-button" id="previousTrack" aria-label="Previous track" title="Previous track (←)" aria-keyshortcuts="ArrowLeft" disabled>⏮</button>
+                <button type="button" class="icon-button play-pause" id="togglePlayback" aria-label="Play or pause" title="Play or pause (Space)" aria-keyshortcuts="Space" disabled>▶</button>
+                <button type="button" class="icon-button" id="nextTrack" aria-label="Next track" title="Next track (→)" aria-keyshortcuts="ArrowRight" disabled>⏭</button>
+            </div>
+            <div class="seek-row">
+                <span id="elapsed">0:00</span>
+                <input id="seek" type="range" min="0" max="0" step="1" value="0" disabled aria-label="Seek playback position">
+                <span id="duration">—</span>
+            </div>
+        </div>
+        <div class="player-actions">
+            <label class="volume-row" for="volume"><span>Volume</span><input id="volume" type="range" min="0" max="100" value="0" disabled><output id="volumeValue" for="volume">—</output></label>
+            <div class="player-links">
+                <details id="currentPlayer" class="track-drawer">
+                    <summary id="trackListToggle">Album tracks</summary>
+                    <div id="playingTracks" class="playing-tracks"></div>
+                </details>
+                <button id="refresh" class="ghost" type="button" title="Refresh WiiM playback">Refresh</button>
+                <span id="now" class="sr-only"></span>
+            </div>
+        </div>
+    </footer>
+
+    <dialog id="detail" class="album-dialog" aria-labelledby="albumTitle" hidden>
+        <div id="albumContent"></div>
+    </dialog>
+    <dialog id="playDialog" aria-labelledby="playHeading">
+        <div class="dialog-body">
+            <h2 id="playHeading">Starting playback</h2>
+            <p id="playDescription"></p>
+            <progress id="playProgress" max="100" value="0" aria-label="Playback countdown"></progress>
+            <p class="muted" id="playStatus">Starts in 1 second and replaces the WiiM queue.</p>
+            <button class="secondary" id="cancelPlay" type="button" autofocus>Cancel</button>
+        </div>
+    </dialog>
+    <dialog id="recentDialog" aria-labelledby="recentHeading">
+        <div class="dialog-body">
+            <div class="section-heading"><h2 id="recentHeading">Recently played</h2><button id="closeRecents" class="secondary" type="button">Close</button></div>
+            <div id="recentList"></div>
+        </div>
+    </dialog>
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
