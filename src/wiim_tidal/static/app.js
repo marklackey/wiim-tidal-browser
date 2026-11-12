@@ -1,5 +1,8 @@
 
 const $=s=>document.querySelector(s);
+const catalogName = document.body?.dataset?.catalogName || 'TIDAL';
+const catalogId = document.body?.dataset?.catalogId || 'tidal';
+const playerName = document.body?.dataset?.playerName || 'WiiM';
 let results = {artist: [], album: [], track: []};
 let active = null;
 const matchLabels = {artist: 'Artist matches', album: 'Album matches', track: 'Track matches'};
@@ -61,10 +64,10 @@ function coverArt(art) {
 }
 
 function resolutionText(r){return `${r.bits}-bit / ${(r.hz/1000).toFixed(1)} kHz (first-track estimate)`}
-function fetchResolution(id){id=String(id);if(!resolutionCache.has(id)){const pending=api('/api/resolution/'+id).catch(e=>{resolutionCache.delete(id);throw e});resolutionCache.set(id,pending)}return resolutionCache.get(id)}
+function fetchResolution(id){id=String(id);if(!resolutionCache.has(id)){const pending=api('/api/resolution/'+encodeURIComponent(id)).catch(e=>{resolutionCache.delete(id);throw e});resolutionCache.set(id,pending)}return resolutionCache.get(id)}
 function albumCard(album) {
     const meta = [album.artist, album.year, album.version].filter(Boolean).map(esc).join(' · ');
-    return `<article class="card" data-id="${album.id}" data-quality="${qualityTier(album)}">
+    return `<article class="card" data-id="${esc(album.id)}" data-quality="${qualityTier(album)}">
         <button type="button" class="card-main" aria-label="View ${esc(album.name)} by ${esc(album.artist)}">
             ${coverArt(album.art)}
             <span class="title" title="${esc(album.name)}">${esc(album.name)}</span>
@@ -87,16 +90,16 @@ function chronological(a, b) {
         || collator.compare(resultAlbum(a), resultAlbum(b))
         || (a.number || 0) - (b.number || 0)
         || collator.compare(a.title || a.name, b.title || b.name)
-        || a.id - b.id;
+        || collator.compare(String(a.id), String(b.id));
 }
 
 function searchTrackCard(track) {
     return `<div class="search-track">
-        <button type="button" class="track" data-search-track="${track.id}" aria-label="Play ${esc(track.title)}">
+        <button type="button" class="track" data-search-track="${esc(track.id)}" aria-label="Play ${esc(track.title)}">
             <span class="track-icon" aria-hidden="true">▶</span>
             <span>${esc(track.title)}<small class="sub">${esc(track.album)}</small></span>
         </button>
-        ${track.album_id ? `<button class="ghost" type="button" data-open-album="${track.album_id}">View album</button>` : ''}
+        ${track.album_id ? `<button class="ghost" type="button" data-open-album="${esc(track.album_id)}">View album</button>` : ''}
     </div>`;
 }
 
@@ -171,7 +174,7 @@ function draw() {
     $('#results').querySelectorAll('[data-open-album]').forEach(button => {
         button.onclick = () => openAlbum(button.dataset.openAlbum);
     });
-    // One background lookup at a time so stream requests do not flood TIDAL.
+    // One background resolution lookup at a time.
     const queue=[];let running=false;
     async function drain(){if(running)return;running=true;try{while(queue.length&&version===drawVersion){const card=queue.shift();if(!card.isConnected)continue;if(card.getClientRects&&!card.getClientRects().length){resolutionObserver.observe(card);continue;}const label=card.querySelector('[data-resolution]');label.textContent='Checking resolution…';try{const r=await fetchResolution(card.dataset.id);if(card.isConnected)label.textContent=resolutionText(r)}catch(e){if(card.isConnected){label.textContent='Resolution unavailable';label.title=e.message}}}}finally{running=false}}
     resolutionObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){resolutionObserver.unobserve(entry.target);queue.push(entry.target)}}drain()},{rootMargin:'150px'});
@@ -183,7 +186,7 @@ function draw() {
 function trackRows(data) {
     return data.tracks.map((track, i) => {
         const current = String(track.id) === currentTrackId;
-        return `<button type="button" class="track${current ? ' current' : ''}" data-track="${track.id}"
+        return `<button type="button" class="track${current ? ' current' : ''}" data-track="${esc(track.id)}"
             ${current ? 'aria-current="true"' : ''} aria-label="Play ${esc(track.title)}">
             <span class="muted">${i + 1}</span>
             <span>${esc(track.title)}<small class="sub">${esc(track.artist)}</small></span>
@@ -195,7 +198,7 @@ function trackRows(data) {
 function bindTrackRows(panel, data) {
     panel.querySelectorAll('[data-track]').forEach(button => {
         button.onclick = () => {
-            const track = data.tracks.find(item => item.id === Number(button.dataset.track));
+            const track = data.tracks.find(item => String(item.id) === button.dataset.track);
             play([track.id], {
                 kind: 'track', title: track.title, artist: track.artist,
                 albumId: data.album.id, art: data.album.art,
@@ -215,7 +218,7 @@ async function openAlbum(id) {
     const token = ++albumRequest;
     msg('Loading album…');
     try {
-        const data = await api('/api/album/' + id);
+        const data = await api('/api/album/' + encodeURIComponent(id));
         if (token !== albumRequest) return;
         active = data;
         const album = data.album;
@@ -229,8 +232,8 @@ async function openAlbum(id) {
                 <div><h2 id="albumTitle">${esc(album.name)}</h2><p class="sub">${meta}</p></div>
             </div>
             <div class="album-actions">
-                <button id="all" type="button">Play album on WiiM</button>
-                <a href="${esc(album.url)}" target="_blank" rel="noopener">Open in TIDAL ↗</a>
+                <button id="all" type="button">Play album on ${esc(playerName)}</button>
+                ${/^https?:\/\//i.test(album.url || '') ? `<a href="${esc(album.url)}" target="_blank" rel="noopener">Open in ${esc(catalogName)} ↗</a>` : ''}
             </div>
             <div>${trackRows(data)}</div>
         </div>`;
@@ -248,7 +251,8 @@ async function openAlbum(id) {
     }
 }
 
-const RECENTS_KEY = 'wiim-play-recents-v1';
+const RECENTS_KEY = catalogId === 'tidal' ? 'wiim-play-recents-v1'
+    : `hi-res-play-recents-v1:${catalogId}`;
 let pendingPlay = null, playTimer = null, submitting = false, lastQueue = null;
 let searched = false;
 
@@ -309,14 +313,14 @@ function showRecents() {
         <span class="recent-copy"><strong class="title">${esc(item.title)}</strong>
         <span class="sub">${esc(item.artist)}</span>
         <span class="sub">${item.kind === 'album' ? 'Album' : 'Track'} · ${esc(new Date(item.at).toLocaleString())}</span></span>
-    </button>`).join('') : '<p class="empty">Albums and tracks you play on your WiiM will appear here.</p>';
+    </button>`).join('') : `<p class="empty">Albums and tracks you play on your ${esc(playerName)} will appear here.</p>`;
     bindRecents(list, items, true);
     $('#recentDialog').showModal();
 }
 function cancelPlayback(){if(submitting)return;if(playTimer!==null)clearInterval(playTimer);playTimer=null;pendingPlay=null;$('#playDialog').close()}
 function play(ids,entry,tracks=active?.tracks||[]){
     if(submitting)return;cancelPlayback();pendingPlay={ids:[...ids],entry:{...entry},tracks:tracks.filter(t=>ids.includes(t.id))};
-    $('#playHeading').textContent='Starting playback';$('#playDescription').textContent=entry.title;$('#playStatus').textContent='Starts in 1 second and replaces the WiiM queue.';$('#cancelPlay').disabled=false;$('#cancelPlay').textContent='Cancel';$('#playProgress').value=0;$('#playDialog').showModal();
+    $('#playHeading').textContent='Starting playback';$('#playDescription').textContent=entry.title;$('#playStatus').textContent=`Starts in 1 second and replaces the ${playerName} queue.`;$('#cancelPlay').disabled=false;$('#cancelPlay').textContent='Cancel';$('#playProgress').value=0;$('#playDialog').showModal();
     const started=performance.now();playTimer=setInterval(()=>{const elapsed=performance.now()-started;$('#playProgress').value=Math.min(100,elapsed/10);if(elapsed>=1000){clearInterval(playTimer);playTimer=null;submitPlayback()}},25);
 }
 async function submitPlayback() {
@@ -325,7 +329,7 @@ async function submitPlayback() {
     pendingPlay = null;
     submitting = true;
     $('#cancelPlay').disabled = true;
-    $('#playStatus').textContent = 'Sending queue to WiiM…';
+    $('#playStatus').textContent = `Sending queue to ${playerName}…`;
     try {
         const result = await api('/api/play', {method:'POST', body:JSON.stringify({ids:pending.ids})});
         lastQueue = pending;
@@ -335,7 +339,7 @@ async function submitPlayback() {
         ++albumRequest;
         playingAlbumKey = '';
         if ($('#currentPlayer').open) expandPlayingAlbum();
-        msg(result.count === 1 ? 'Track sent to WiiM.' : `${result.count} tracks sent to WiiM.`);
+        msg(result.count === 1 ? `Track sent to ${playerName}.` : `${result.count} tracks sent to ${playerName}.`);
         setTimeout(now, 1200);
     } catch (error) {
         $('#playHeading').textContent = 'Playback failed';
@@ -353,12 +357,12 @@ function deviceAudio(m,resolution){
     else parts.push('Track resolution unavailable');
     const rate=m.bitRate??m.bitrate??m.bit_rate;
     if(Number(rate)>0)parts.push(`Bitrate: ${rate}${m.bitrateUnit?' '+m.bitrateUnit:''}`);
-    else parts.push('Bitrate not reported by WiiM');
+    else parts.push(`Bitrate not reported by ${playerName}`);
     return parts.join(' · ');
 }
 function loadTrackResolution(id,m){
-    if(!/^[1-9][0-9]*$/.test(id))return;
-    if(!trackResolutionCache.has(id))trackResolutionCache.set(id,api('/api/track-resolution/'+id).catch(error=>{trackResolutionCache.delete(id);throw error}));
+    if(!/^[A-Za-z0-9._~:-]{1,200}$/.test(id))return;
+    if(!trackResolutionCache.has(id))trackResolutionCache.set(id,api('/api/track-resolution/'+encodeURIComponent(id)).catch(error=>{trackResolutionCache.delete(id);throw error}));
     trackResolutionCache.get(id).then(res=>{if(currentTrackId===id)$('#playingAudio').textContent=deviceAudio(m,res)}).catch(()=>{});
 }
 const transportButtons = ['#previousTrack', '#togglePlayback', '#nextTrack'];
@@ -414,7 +418,8 @@ async function refreshPlayer(revision) {
         setTransportReady(controlsAvailable);
         showWiimConnection('ready', 'Connected');
         $('#wiimConnectionHelp').textContent = '';
-        const id = String(metadata.trackId || metadata.track_id || '');
+        const id = !metadata.catalogId || metadata.catalogId === catalogId
+            ? String(metadata.trackId || metadata.track_id || '') : '';
         if (currentTrackId !== id) playingAlbumKey = '';
         currentTrackId = id;
         if ($('#currentPlayer').open) expandPlayingAlbum();
@@ -436,7 +441,7 @@ async function refreshPlayer(revision) {
         $('#playingState').textContent = !controlsAvailable ? 'Controls unavailable'
             : metadata.playbackStatus === 'pause' ? 'Paused'
             : metadata.playbackStatus === 'stop' ? 'Stopped'
-            : metadata.playbackStatus === 'play' ? 'Now playing on WiiM' : 'WiiM playback';
+            : metadata.playbackStatus === 'play' ? `Now playing on ${playerName}` : `${playerName} playback`;
     } catch (error) {
         if (revision !== deviceRevision || serverStopped) return;
         currentTrackId = '';
@@ -449,8 +454,8 @@ async function refreshPlayer(revision) {
         $('#seek').disabled = true;
         $('#volume').disabled = true;
         $('#volumeValue').textContent = '—';
-        $('#playingState').textContent = 'WiiM playback';
-        $('#playingTitle').textContent = deviceSelected ? 'WiiM unavailable' : 'Select your WiiM in Setup';
+        $('#playingState').textContent = `${playerName} playback`;
+        $('#playingTitle').textContent = deviceSelected ? `${playerName} unavailable` : `Select your ${playerName} in Setup`;
         $('#playingArtist').textContent = deviceSelected ? 'See Setup for connection details.' : '';
         $('#wiimConnectionHelp').textContent = deviceSelected ? error.message : '';
         $('#playingAudio').textContent = '';
@@ -461,10 +466,10 @@ async function refreshPlayer(revision) {
 let playingAlbumKey='',playingAlbumRequest=0;const playingAlbums=new Map();
 async function expandPlayingAlbum(){
     const id=currentTrackId;const fallback=lastQueue?.entry.albumId;
-    const key=/^[1-9][0-9]*$/.test(id)?'track:'+id:fallback?'album:'+fallback:'';
-    if(!key){$('#playingTracks').textContent='No current album reported by WiiM.';return}
+    const key=/^[A-Za-z0-9._~:-]{1,200}$/.test(id)?'track:'+id:fallback?'album:'+fallback:'';
+    if(!key){$('#playingTracks').textContent=`No current album reported by ${playerName}.`;return}
     if(playingAlbumKey===key)return;playingAlbumKey=key;const token=++playingAlbumRequest;$('#playingTracks').textContent='Loading current album…';
-    try{let albumId=fallback;if(key.startsWith('track:')){const t=await api('/api/track/'+id);albumId=t.album_id}if(!albumId)throw Error('Current track has no album metadata');if(!playingAlbums.has(String(albumId)))playingAlbums.set(String(albumId),await api('/api/album/'+albumId));if(token!==playingAlbumRequest||playingAlbumKey!==key)return;const data=playingAlbums.get(String(albumId));$('#playingTracks').innerHTML=`<h3>${esc(data.album.name)}</h3>${trackRows(data)}`;bindTrackRows($('#playingTracks'),data)}catch(e){if(token===playingAlbumRequest){playingAlbumKey='';$('#playingTracks').textContent='Unable to load current album: '+e.message}}
+    try{let albumId=fallback;if(key.startsWith('track:')){const t=await api('/api/track/'+encodeURIComponent(id));albumId=t.album_id}if(!albumId)throw Error('Current track has no album metadata');if(!playingAlbums.has(String(albumId)))playingAlbums.set(String(albumId),await api('/api/album/'+encodeURIComponent(albumId)));if(token!==playingAlbumRequest||playingAlbumKey!==key)return;const data=playingAlbums.get(String(albumId));$('#playingTracks').innerHTML=`<h3>${esc(data.album.name)}</h3>${trackRows(data)}`;bindTrackRows($('#playingTracks'),data)}catch(e){if(token===playingAlbumRequest){playingAlbumKey='';$('#playingTracks').textContent='Unable to load current album: '+e.message}}
 }
 let seeking = false, seekPending = false, positionSample = null;
 
@@ -545,7 +550,7 @@ function playbackKeydown(event){
 }
 let discoveryBusy = false;
 let deviceSelected = false;
-let deviceHost = '';
+let deviceKey = '';
 let wiimConnectionState = '';
 let serverStopped = false;
 
@@ -567,8 +572,8 @@ function updateDiscoveryButton() {
     const button = $('#discoverWiim');
     button.disabled = discoveryBusy || serverStopped;
     button.textContent = discoveryBusy ? 'Discovering…'
-        : wiimConnectionState === 'ready' ? 'Find another WiiM'
-        : deviceSelected ? 'Find WiiM again' : 'Discover WiiM';
+        : wiimConnectionState === 'ready' ? `Find another ${playerName}`
+        : deviceSelected ? `Find ${playerName} again` : `Discover ${playerName}`;
 }
 
 function showWiimConnection(state, label) {
@@ -577,17 +582,18 @@ function showWiimConnection(state, label) {
     updateDiscoveryButton();
 }
 
-function showDevice(host, name) {
+function showDevice(host, name, id = null) {
     const selectedHost = host || '';
-    const changed = selectedHost !== deviceHost;
-    deviceHost = selectedHost;
-    deviceSelected = Boolean(selectedHost);
+    const key = JSON.stringify([id, selectedHost]);
+    const changed = key !== deviceKey;
+    deviceKey = key;
+    deviceSelected = Boolean(id || selectedHost);
     document.body.dataset.device = deviceSelected ? 'selected' : 'unselected';
-    $('#wiimLabel').textContent = deviceSelected ? name || 'WiiM' : 'WiiM';
+    $('#wiimLabel').textContent = deviceSelected ? name || playerName : playerName;
     $('#wiimLabel').title = selectedHost;
     $('#wiimSetupStatus').textContent = deviceSelected
-        ? `${name || 'WiiM'} · ${selectedHost}`
-        : 'Connect your Mac and WiiM to the same network.';
+        ? [name || playerName, selectedHost].filter(Boolean).join(' · ')
+        : `Connect this computer and your ${playerName} to the same network.`;
     if (changed) {
         $('#wiimConnectionHelp').textContent = '';
         ++deviceRevision;
@@ -598,14 +604,14 @@ function showDevice(host, name) {
     if (changed || !deviceSelected) {
         showWiimConnection(deviceSelected ? 'checking' : '', deviceSelected ? 'Connecting…' : 'Not selected');
         if (deviceSelected) {
-            $('#playingTitle').textContent = 'Connecting to WiiM…';
+            $('#playingTitle').textContent = `Connecting to ${playerName}…`;
             $('#playingArtist').textContent = '';
         }
     }
 }
 
 async function connectedDevice(device) {
-    showDevice(device.host, device.name);
+    showDevice(device.host, device.name, device.id);
     $('#devicePicker').hidden = true;
     discoveryMessage('');
     currentTrackId = '';
@@ -623,16 +629,16 @@ async function discoverWiim() {
     $('#devicePicker').hidden = true;
     discoveryMessage('Searching your local network…');
     try {
-        const result = await api('/api/wiim/discover', {method:'POST'});
+        const result = await api('/api/player/discover', {method:'POST'});
         if (result.selected) {
             await connectedDevice(result.selected);
         } else if (!result.devices.length) {
-            discoveryMessage('No WiiM found. Check that it is on the same network, or enter its address below.', true);
+            discoveryMessage(`No ${playerName} found. Check that it is on the same network and try again.`, true);
         } else {
             $('#wiimDevices').innerHTML = result.devices.map(device =>
                 `<option value="${esc(device.id)}">${esc(device.name)} · ${esc(device.host)}</option>`).join('');
             $('#devicePicker').hidden = false;
-            discoveryMessage('Choose which WiiM to use.');
+            discoveryMessage('Choose a player to use.');
             $('#wiimDevices').focus();
         }
     } catch (error) {
@@ -647,7 +653,7 @@ async function connectWiim() {
     const button = $('#connectWiim');
     button.disabled = true;
     try {
-        const {selected} = await api('/api/wiim/select', {
+        const {selected} = await api('/api/player/select', {
             method:'POST', body:JSON.stringify({id:$('#wiimDevices').value}),
         });
         await connectedDevice(selected);
@@ -679,7 +685,7 @@ $('#searchForm').onsubmit=async event => {
     const token = ++searchRequest;
     const button = $('#searchButton');
     button.textContent = 'Searching…';
-    msg('Searching TIDAL…');
+    msg(`Searching ${catalogName}…`);
     try {
         const params = new URLSearchParams({q:query, types:types.join(',')});
         const data = await api('/api/search?' + params);
@@ -745,14 +751,16 @@ function showSetup(show, focus = false) {
 }
 
 function showHealth(health) {
-    showDevice(health.wiim, health.wiimName);
-    const tidalStatus = health.restoring ? 'Checking…' : health.tidal ? 'Connected' : 'Sign in required';
+    const device = health.playerDevice ?? {host: health.wiim, name: health.wiimName};
+    showDevice(device.host, device.name, device.id);
+    const connected = health.catalogConnected ?? health.tidal;
+    const tidalStatus = health.restoring ? 'Checking…' : connected ? 'Connected' : 'Sign in required';
     setConnectionBadge('#tidalConnectionCard', '#connection', '#tidalSetupState',
-        health.tidal ? 'ready' : '', tidalStatus);
-    $('#tidalSetupStatus').textContent = health.tidal ? 'TIDAL is connected.' : 'Sign in with your TIDAL account.';
+        connected ? 'ready' : '', tidalStatus);
+    $('#tidalSetupStatus').textContent = connected ? `${catalogName} is connected.` : `Sign in with your ${catalogName} account.`;
     $('#startLogin').disabled = Boolean(health.restoring);
-    $('#startLogin').textContent = health.tidal ? 'Reconnect TIDAL' : 'Connect TIDAL';
-    if (!deviceSelected) $('#playingTitle').textContent = 'No WiiM selected';
+    $('#startLogin').textContent = connected ? `Reconnect ${catalogName}` : `Connect ${catalogName}`;
+    if (!deviceSelected) $('#playingTitle').textContent = `No ${playerName} selected`;
 }
 
 $('#openSetup').onclick = () => showSetup($('#setup').hidden, true);
@@ -782,7 +790,7 @@ $('#loginForm').onsubmit = async event => {
     const input = $('#redirectUrl');
     const button = event.currentTarget.querySelector('button');
     button.disabled = true;
-    $('#tidalSetupStatus').textContent = 'Connecting to TIDAL…';
+    $('#tidalSetupStatus').textContent = `Connecting to ${catalogName}…`;
     try {
         await api('/api/auth/finish', {method:'POST', body:JSON.stringify({redirect:input.value.trim()})});
         input.value = '';
@@ -799,7 +807,7 @@ $('#manualDevice').onsubmit = async event => {
     const button = event.currentTarget.querySelector('button');
     button.disabled = true;
     try {
-        const {selected} = await api('/api/wiim/manual', {method:'POST', body:JSON.stringify({
+        const {selected} = await api('/api/player/manual', {method:'POST', body:JSON.stringify({
             host:$('#manualHost').value.trim(), port:Number($('#manualPort').value)})});
         $('#manualStatus').textContent = 'Address saved.';
         await connectedDevice(selected);
@@ -822,7 +830,7 @@ $('#stopServer').onclick = async () => {
         $('#refresh').disabled = true;
         $('#playingTitle').textContent = 'Local server stopped';
         $('#stopServer').disabled = true;
-        msg('Server stopped. Open WiiM TIDAL again to reconnect.');
+        msg('Server stopped. Open the app again to reconnect.');
         showSetup(false);
     } catch (error) {
         msg(error.message, true);
@@ -841,7 +849,7 @@ async function loadSetupStatus() {
     try {
         const health = await api('/api/health');
         showHealth(health);
-        if (health.wiim && startupDeviceRevision !== deviceRevision) {
+        if (deviceSelected && startupDeviceRevision !== deviceRevision) {
             startupDeviceRevision = deviceRevision;
             now();
         }
@@ -849,7 +857,7 @@ async function loadSetupStatus() {
             setTimeout(loadSetupStatus, 750);
             return;
         }
-        const needsSetup = !health.tidal || !health.wiim;
+        const needsSetup = !(health.catalogConnected ?? health.tidal) || !deviceSelected;
         if (needsSetup) $('#searchHero').className = 'hero compact';
         showSetup(needsSetup || new URLSearchParams(location.search).has('setup'));
     } catch (error) {

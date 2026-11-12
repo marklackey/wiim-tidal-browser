@@ -3,16 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Hi-Res Finder · WiiM + TIDAL</title>
+    <title>Hi-Res Finder · {{ player.name }} + {{ catalog.name }}</title>
     <meta name="local-token" content="{{ token }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body data-device="unselected">
+<body data-device="unselected" data-catalog-id="{{ catalog.id }}" data-catalog-name="{{ catalog.name }}"
+      data-player-name="{{ player.name }}">
     <a class="skip-link" href="#main">Skip to content</a>
     <aside class="sidebar" aria-label="Library">
         <a class="brand" href="#main">
             <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span><strong>Hi-Res Finder</strong><small>WiiM + TIDAL</small></span>
+            <span><strong>Hi-Res Finder</strong><small>{{ player.name }} + {{ catalog.name }}</small></span>
         </a>
         <nav class="library-nav" aria-label="Main navigation">
             <a id="exploreNav" href="#main" aria-current="page"><span class="nav-icon icon-search" aria-hidden="true"></span>Explore</a>
@@ -21,11 +22,11 @@
         </nav>
         <div class="sidebar-status" aria-label="Connections">
             <div class="connection-row" id="tidalConnectionCard">
-                <strong>TIDAL</strong>
+                <strong>{{ catalog.name }}</strong>
                 <span class="connection-state" id="connection" role="status">Checking…</span>
             </div>
             <div class="connection-row" id="wiimConnectionCard">
-                <strong id="wiimLabel">WiiM</strong>
+                <strong id="wiimLabel">{{ player.name }}</strong>
                 <span class="connection-state" id="wiimConnection" role="status">Checking…</span>
             </div>
         </div>
@@ -36,11 +37,11 @@
             <div class="record-art" aria-hidden="true"></div>
             <div class="hero-content">
                 <h1 id="searchHeading">Find your next listen.</h1>
-                <p>Explore TIDAL releases and play them on your WiiM.</p>
+                <p>Explore {{ catalog.name }} releases and play them on your {{ player.name }}.</p>
                 <form id="searchForm" class="search-form" role="search">
                     <label class="search-field">
                         <span class="icon-search" aria-hidden="true"></span>
-                        <span class="sr-only">Search TIDAL</span>
+                        <span class="sr-only">Search {{ catalog.name }}</span>
                         <input id="query" type="search" placeholder="Search albums, tracks, or artists" maxlength="150" autocomplete="off" required>
                     </label>
                     <button id="searchButton" type="submit">Search</button>
@@ -55,41 +56,41 @@
 
         <section id="setup" class="details setup" aria-labelledby="setupHeading" hidden>
             <div class="section-heading">
-                <h2 id="setupHeading" tabindex="-1">Set up WiiM TIDAL</h2>
+                <h2 id="setupHeading" tabindex="-1">Set up {{ player.name }} + {{ catalog.name }}</h2>
                 <button id="closeSetup" class="secondary" type="button">Close setup</button>
             </div>
             <div class="setup-grid">
                 <section class="setup-card" aria-labelledby="tidalHeading">
-                    <div class="setup-card-heading"><h3 id="tidalHeading">TIDAL account</h3><span class="setup-state" id="tidalSetupState">Checking…</span></div>
-                    <p id="tidalSetupStatus" class="muted" role="status">Sign in with your TIDAL account.</p>
-                    <button id="startLogin" class="secondary" type="button">Connect TIDAL</button>
+                    <div class="setup-card-heading"><h3 id="tidalHeading">{{ catalog.name }} account</h3><span class="setup-state" id="tidalSetupState">Checking…</span></div>
+                    <p id="tidalSetupStatus" class="muted" role="status">Sign in with your {{ catalog.name }} account.</p>
+                    <button id="startLogin" class="secondary" type="button"{% if not catalog.login_required %} hidden{% endif %}>Connect {{ catalog.name }}</button>
                     <div id="loginInstructions" hidden>
-                        <p><a id="loginLink" target="_blank" rel="noopener noreferrer">Open TIDAL sign-in ↗</a></p>
-                        <p class="muted">After signing in, copy the address of the final page, even if TIDAL shows an “Oops” message.</p>
+                        <p><a id="loginLink" target="_blank" rel="noopener noreferrer">Open {{ catalog.name }} sign-in ↗</a></p>
+                        <p class="muted">After signing in, copy the address of the final page, even if it shows an error.</p>
                         <form id="loginForm" class="stack-form">
-                            <label for="redirectUrl">TIDAL redirect URL</label>
+                            <label for="redirectUrl">{{ catalog.name }} redirect URL</label>
                             <input id="redirectUrl" type="url" placeholder="Paste the full URL" autocomplete="off" required>
                             <button type="submit">Finish login</button>
                         </form>
                     </div>
                 </section>
                 <section class="setup-card" aria-labelledby="wiimHeading">
-                    <div class="setup-card-heading"><h3 id="wiimHeading">WiiM player</h3><span class="setup-state" id="wiimSetupState">Not selected</span></div>
-                    <p id="wiimSetupStatus" class="muted">Connect your Mac and WiiM to the same network.</p>
+                    <div class="setup-card-heading"><h3 id="wiimHeading">{{ player.name }} player</h3><span class="setup-state" id="wiimSetupState">Not selected</span></div>
+                    <p id="wiimSetupStatus" class="muted">Connect this computer and your {{ player.name }} to the same network.</p>
                     <p id="wiimConnectionHelp" class="feedback error" role="status"></p>
-                    <button id="discoverWiim" class="secondary" type="button">Discover WiiM</button>
+                    <button id="discoverWiim" class="secondary" type="button">Discover {{ player.name }}</button>
                     <p id="discoveryStatus" class="feedback muted" role="status"></p>
                     <div id="devicePicker" class="stack-form" hidden>
-                        <label for="wiimDevices">Choose a WiiM</label>
+                        <label for="wiimDevices">Choose a player</label>
                         <select id="wiimDevices"></select>
                         <button id="connectWiim" type="button">Connect</button>
                     </div>
-                    <details class="manual-settings">
+                    <details class="manual-settings"{% if player.manual_port is none %} hidden{% endif %}>
                         <summary>Enter address manually</summary>
                         <form id="manualDevice" class="stack-form">
                             <div class="address-fields">
-                                <label for="manualHost">WiiM IPv4 address<input id="manualHost" placeholder="192.168.1.20" required></label>
-                                <label for="manualPort">UPnP port<input id="manualPort" type="number" min="1" max="65535" value="49152" required></label>
+                                <label for="manualHost">Player address<input id="manualHost" placeholder="192.168.1.20" required></label>
+                                <label for="manualPort">Port<input id="manualPort" type="number" min="1" max="65535" value="{{ player.manual_port }}" required></label>
                             </div>
                             <button type="submit">Save address</button>
                         </form>
@@ -129,17 +130,17 @@
         </section>
     </main>
 
-    <footer class="player" aria-label="WiiM player">
+    <footer class="player" aria-label="{{ player.name }} player">
         <div class="now-playing">
             <div class="player-art" aria-hidden="true"><span>♫</span><img id="playingArt" alt="" hidden></div>
             <div class="player-copy">
-                <div id="playingState" class="player-state">WiiM playback</div>
-                <strong id="playingTitle">Checking WiiM…</strong>
+                <div id="playingState" class="player-state">{{ player.name }} playback</div>
+                <strong id="playingTitle">Checking {{ player.name }}…</strong>
                 <div id="playingArtist" class="muted"></div>
                 <div id="playingAudio" class="muted audio-info"></div>
             </div>
         </div>
-        <button id="playerSetup" class="secondary player-setup" type="button">Set up WiiM</button>
+        <button id="playerSetup" class="secondary player-setup" type="button">Set up {{ player.name }}</button>
         <div class="transport">
             <div class="transport-buttons">
                 <button type="button" class="icon-button" id="previousTrack" aria-label="Previous track" title="Previous track (←)" aria-keyshortcuts="ArrowLeft" disabled>⏮</button>
@@ -159,7 +160,7 @@
                     <summary id="trackListToggle">Album tracks</summary>
                     <div id="playingTracks" class="playing-tracks"></div>
                 </details>
-                <button id="refresh" class="ghost" type="button" title="Refresh WiiM playback">Refresh</button>
+                <button id="refresh" class="ghost" type="button" title="Refresh {{ player.name }} playback">Refresh</button>
                 <span id="now" class="sr-only"></span>
             </div>
         </div>
@@ -173,7 +174,7 @@
             <h2 id="playHeading">Starting playback</h2>
             <p id="playDescription"></p>
             <progress id="playProgress" max="100" value="0" aria-label="Playback countdown"></progress>
-            <p class="muted" id="playStatus">Starts in 1 second and replaces the WiiM queue.</p>
+            <p class="muted" id="playStatus">Starts in 1 second and replaces the player queue.</p>
             <button class="secondary" id="cancelPlay" type="button" autofocus>Cancel</button>
         </div>
     </dialog>

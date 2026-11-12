@@ -1,3 +1,4 @@
 include app.py login.py requirements.txt test_app.py
 recursive-include scripts *.sh *.py *.swift
 recursive-include tests *.cjs
+include docs/adapters.md
