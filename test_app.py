@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 import tidalapi
 from wiim_tidal import catalog as metadata
+from wiim_tidal.adapters import QueueTrack
 from wiim_tidal.config import Settings
 from wiim_tidal.web import create_app
 
@@ -19,7 +20,7 @@ class AppTest(unittest.TestCase):
         self.client = self.app.test_client()
         self.catalog = self.app.extensions['catalog']
         self.catalog.connected = True
-        self.wiim = self.app.extensions['wiim']
+        self.wiim = self.app.extensions['player']
         self.headers = {'X-Local-Token': self.app.config['LOCAL_TOKEN']}
 
     def post(self, path, **kwargs):
@@ -61,10 +62,12 @@ class QueueMetadataTests(AppTest):
                                 album=album, track_num=2)
         with patch.object(self.catalog, 'session') as session, patch.object(self.wiim, 'soap') as soap:
             session.track.return_value = track
-            self.assertEqual(self.wiim.create_playlist([123, 123], 'Test & Queue'), 2)
+            reply = self.post('/api/play', json={'ids': [123, 123]})
+            self.assertEqual(reply.status_code, 200)
+            self.assertEqual(reply.json['count'], 2)
             session.track.assert_called_once_with(123)
         queue = ET.fromstring(soap.call_args.args[1]['QueueContext'])
-        self.assertEqual(queue.findtext('ListName'), 'Test & Queue')
+        self.assertEqual(queue.findtext('ListName'), 'Hi-Res Browser')
         entries = list(queue.find('Tracks'))
         self.assertEqual(len(entries), 2)
         for entry in entries:
@@ -82,8 +85,7 @@ class QueueMetadataTests(AppTest):
     def test_metadata_failure_does_not_submit_queue(self):
         with patch.object(self.catalog, 'session') as session, patch.object(self.wiim, 'soap') as soap:
             session.track.side_effect = RuntimeError('Catalog unavailable')
-            with self.assertRaisesRegex(RuntimeError, 'Catalog unavailable'):
-                self.wiim.create_playlist([123], 'Test')
+            self.assertEqual(self.post('/api/play', json={'ids':[123]}).status_code, 502)
             soap.assert_not_called()
 
 
@@ -204,7 +206,7 @@ class FirstRunTests(AppTest):
                   'url': 'http://192.168.1.10:49152/upnp/control/PlayQueue1'}
         moved = {**device, 'host': '192.168.1.11',
                  'url': 'http://192.168.1.11:49153/upnp/control/PlayQueue1'}
-        with patch('wiim_tidal.web.discover_devices', side_effect=[[device], [moved]]):
+        with patch('wiim_tidal.wiim.discover_devices', side_effect=[[device], [moved]]):
             self.assertEqual(self.post('/api/wiim/discover', json={}).json['selected'], device)
             self.assertEqual(self.post('/api/wiim/discover', json={}).json['selected'], moved)
         restarted = create_app(self.app.extensions['settings']).test_client()
@@ -230,6 +232,63 @@ class FirstRunTests(AppTest):
         self.assertEqual(response.status_code, 200)
         self.assertIs(self.catalog.session, pending)
         self.assertEqual(self.app.extensions['settings'].session_file.stat().st_mode & 0o777, 0o600)
+
+
+class AdapterIntegrationTests(unittest.TestCase):
+    def test_installed_adapters_can_search_select_play_and_report_status(self):
+        catalog = SimpleNamespace(
+            id='example-catalog', name='Example Catalog', login_required=False,
+            connected=True, restoring=False, start_restore=Mock(),
+            search=Mock(return_value={'albums': [], 'artistAlbums': [], 'tracks': []}),
+            album=Mock(return_value={'album': {'id': 'record:abc'}, 'tracks': []}),
+            track=Mock(return_value={'id': 'track:abc'}),
+            resolution=Mock(return_value={'bits': 24, 'hz': 96000}),
+            queue_tracks=Mock(return_value=[QueueTrack('track:abc', 'Example Track')]),
+        )
+        device = {'id':'player:abc', 'name':'Living Room', 'host':'192.168.1.25'}
+        player = SimpleNamespace(
+            id='example-player', name='Example Player', catalogs=frozenset({catalog.id}), manual_port=None,
+            selected_device=device, discover=Mock(return_value={'devices':[device], 'selected':None}),
+            select_discovered=Mock(return_value=device), queue=Mock(return_value=1), control=Mock(),
+            now_playing=Mock(return_value={'trackId':'track:abc', 'playbackStatus':'play'}),
+        )
+
+        def entry_points(group, name):
+            adapter = {'wiim_tidal.catalogs': catalog, 'wiim_tidal.players': player}[group]
+            if adapter.id != name:
+                return []
+            return [SimpleNamespace(load=lambda: lambda settings: adapter)]
+
+        with TemporaryDirectory() as directory, patch.dict('os.environ', {
+            'WIIM_TIDAL_CATALOG':catalog.id, 'WIIM_TIDAL_PLAYER':player.id,
+        }), patch('wiim_tidal.adapters.entry_points', side_effect=entry_points):
+            app = create_app(Settings(directory), restore=True)
+            client = app.test_client()
+            headers = {'X-Local-Token': app.config['LOCAL_TOKEN']}
+
+            self.assertIn(b'Example Player + Example Catalog', client.get('/').data)
+            self.assertEqual(client.get('/api/health').json['playerDevice'], device)
+            self.assertEqual(client.get('/api/identity').json['catalog'], catalog.id)
+            self.assertEqual(client.get('/api/search?q=Example&types=track').status_code, 200)
+            self.assertEqual(client.get('/api/album/record:abc').json['album']['id'], 'record:abc')
+            self.assertEqual(client.get('/api/track-resolution/track:abc').json['hz'], 96000)
+            self.assertEqual(client.post('/api/player/discover', json={}, headers=headers).json['devices'], [device])
+            self.assertEqual(client.post('/api/player/select', json={'id':device['id']}, headers=headers).json['selected'], device)
+            self.assertEqual(client.post('/api/player/manual', json={'host':'192.168.1.25'}, headers=headers).status_code, 400)
+            self.assertEqual(client.post('/api/auth/start', json={}, headers=headers).status_code, 400)
+            self.assertEqual(client.post('/api/play', json={'ids':['track:abc']}, headers=headers).json['count'], 1)
+            self.assertEqual(client.post('/api/control', json={'action':'pause'}, headers=headers).status_code, 200)
+            self.assertEqual(client.get('/api/now').json['trackId'], 'track:abc')
+
+            player.catalogs = frozenset({'some-other-catalog'})
+            with self.assertRaisesRegex(ValueError, 'does not support'):
+                create_app(Settings(directory), catalog=catalog, player=player)
+
+        catalog.start_restore.assert_called_once_with()
+        catalog.search.assert_called_once_with('Example', ['track'], separate_artist_matches=True)
+        catalog.queue_tracks.assert_called_once_with(['track:abc'])
+        player.queue.assert_called_once_with(catalog.id, [QueueTrack('track:abc', 'Example Track')], 'Hi-Res Browser')
+        player.control.assert_called_once_with('pause', None)
 
 
 if __name__ == '__main__':

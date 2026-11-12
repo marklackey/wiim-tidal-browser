@@ -16,19 +16,22 @@ from .config import Settings
 HOST = '127.0.0.1'
 
 
-def server_running(url):
+def server_running(url, settings):
     opener = build_opener(ProxyHandler({}))
     try:
         with opener.open(url + '/api/identity', timeout=0.5) as response:
-            return json.loads(response.read(4096)).get('app') == 'wiim-tidal-browser'
+            identity = json.loads(response.read(4096))
+            return (identity.get('app') == 'wiim-tidal-browser'
+                    and identity.get('catalog', 'tidal') == settings.catalog_id
+                    and identity.get('player', 'wiim') == settings.player_id)
     except (HTTPError, URLError, OSError, ValueError, AttributeError):
         return False
 
 
-def pick_port():
+def pick_port(settings):
     ports = range(8765, 8775)
     for port in ports:
-        if server_running(f'http://{HOST}:{port}'):
+        if server_running(f'http://{HOST}:{port}', settings):
             return port
     for port in ports:
         with socket.socket() as probe:
@@ -50,7 +53,7 @@ def main(argv=None, legacy_dir=None):
         parser.error('port must be between 1024 and 65535')
     settings = Settings()
     try:
-        port = args.port or (8765 if args.command == 'serve' else pick_port())
+        port = args.port or (8765 if args.command == 'serve' else pick_port(settings))
         url = f'http://{HOST}:{port}'
         settings.prepare(legacy_dir)
         if args.command == 'serve':
@@ -59,7 +62,7 @@ def main(argv=None, legacy_dir=None):
             print(f'WiiM TIDAL is running at {url}', flush=True)
             serve(create_app(settings, restore=True, shutdown=True), host=HOST, port=port)
             return 0
-        if not server_running(url):
+        if not server_running(url, settings):
             executable = [sys.executable] if getattr(sys, 'frozen', False) else [sys.executable, '-m', 'wiim_tidal']
             log = settings.data_dir / 'server.log'
             with log.open('a') as stream:
@@ -67,11 +70,11 @@ def main(argv=None, legacy_dir=None):
                                          stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
                                          start_new_session=True)
             deadline = time.monotonic() + 12
-            while not server_running(url):
+            while not server_running(url, settings):
                 if child.poll() is not None or time.monotonic() > deadline:
                     if child.poll() is None:
                         child.terminate()
-                    if server_running(url):
+                    if server_running(url, settings):
                         break
                     raise RuntimeError(f'The server could not start. Check that port {port} is free. Log: {log}')
                 time.sleep(0.15)

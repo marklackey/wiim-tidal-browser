@@ -35,6 +35,25 @@ Run `wiim-tidal` on subsequent launches. `wiim-tidal serve` runs in the foregrou
 
 If discovery fails, check **System Settings → Privacy & Security → Local Network** for WiiM TIDAL and check that the devices can communicate on the same network. Find your WiiM address in the WiiM Home app if you need manual setup. For the Python command’s server log, see `~/Library/Application Support/WiiM TIDAL/server.log`.
 
+## Add a catalog or network player
+
+TIDAL and WiiM are the default adapters. You can install a different catalog or network player adapter in the Python environment and select a compatible pair. See the [adapter guide](docs/adapters.md).
+
+## Test on another computer
+
+GitHub Actions builds and installs the wheel on fresh macOS and Ubuntu runners, then starts the installed app and checks that the browser page loads. For a test with real hardware, use another Mac or a Linux VM that can reach the WiiM on your local network. Use bridged networking in the VM if available so it can receive local discovery replies.
+
+On either test machine, install Python 3.10+ and pipx, then run:
+
+```bash
+git clone https://github.com/marklackey/wiim-tidal-browser.git
+cd wiim-tidal-browser
+pipx install .
+wiim-tidal setup
+```
+
+Sign in to TIDAL, discover the WiiM, and try searching, starting a track, and pausing it. If discovery fails in the VM, enter the WiiM’s IPv4 address in Setup to check whether direct playback control works. For the native Mac app, build the ZIP from the same checkout and try it on a second Apple silicon Mac, including the Local Network permission prompt.
+
 ## Develop and build
 
 ```bash

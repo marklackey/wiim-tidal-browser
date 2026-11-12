@@ -1,7 +1,6 @@
 """TIDAL catalog serialization; stream URLs never leave this process."""
 from datetime import datetime
 import unicodedata
-import xml.etree.ElementTree as ET
 
 def quality_name(a):
     q = getattr(a, 'audio_quality', '')
@@ -46,25 +45,3 @@ def track_data(t):
             'releaseDate': release_date(album), 'year': getattr(album, 'year', None),
             'number': getattr(t, 'track_num', None),
             'quality': quality_name(t)}
-
-
-def track_metadata(track):
-    """DIDL-Lite for display; WiiM still resolves audio using the TIDAL ID."""
-    didl = 'urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/'
-    dc = 'http://purl.org/dc/elements/1.1/'
-    upnp = 'urn:schemas-upnp-org:metadata-1-0/upnp/'
-    root = ET.Element('DIDL-Lite', {'xmlns': didl, 'xmlns:dc': dc, 'xmlns:upnp': upnp})
-    item = ET.SubElement(root, 'item', {'id': str(track.id), 'parentID': '0', 'restricted': '1'})
-    artist = getattr(getattr(track, 'artist', None), 'name', '') or ''
-    album = getattr(track, 'album', None)
-    for tag, value in (
-        ('dc:title', track.name), ('dc:creator', artist), ('upnp:artist', artist),
-        ('upnp:album', getattr(album, 'name', '')),
-        ('upnp:originalTrackNumber', getattr(track, 'track_num', None)),
-        ('upnp:class', 'object.item.audioItem.musicTrack'),
-    ):
-        if value is not None:
-            ET.SubElement(item, tag).text = str(value)
-    if album is not None and getattr(album, 'cover', None):
-        ET.SubElement(item, 'upnp:albumArtURI').text = album.image(640)
-    return ET.tostring(root, encoding='unicode')
