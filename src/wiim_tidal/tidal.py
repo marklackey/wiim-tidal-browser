@@ -1,5 +1,9 @@
 """TIDAL authentication and catalog adapter."""
+from concurrent.futures import Future
+from dataclasses import dataclass
+from functools import partial
 import logging
+import secrets
 import threading
 import time
 from urllib.parse import urlsplit, parse_qs
@@ -7,6 +11,21 @@ import tidalapi
 from .adapters import QueueTrack
 from .catalog import album_data, search_key, track_data
 from .config import write_private_json
+
+
+@dataclass
+class DeviceLogin:
+    id: str
+    url: str
+    session: tidalapi.Session
+    result: Future[bool]
+
+
+def _wait_for_device_login(session, link, result):
+    try:
+        result.set_result(session.process_link_login(link))
+    except Exception as error:
+        result.set_exception(error)
 
 
 class TidalCatalog:
@@ -20,6 +39,7 @@ class TidalCatalog:
         self.session = self.new_session()
         self.pending = None
         self.pending_at = 0
+        self.device_login = None
         self.connected = False
         self.restoring = False
 
@@ -56,8 +76,61 @@ class TidalCatalog:
         if not self.connected:
             raise ValueError('Connect your TIDAL account in Setup first.')
 
+    @property
+    def resolution_available(self):
+        return self.connected and bool(self.session.is_pkce)
+
+    def begin_device_login(self):
+        with self.lock:
+            login = self.device_login
+            if login and login.result.done() and (login.session is self.session or login.result.exception() is not None):
+                login = None
+            if login is None:
+                session = self.new_session()
+                session.request_session.request = partial(session.request_session.request, timeout=(5, 12))
+                try:
+                    link = session.get_link_login()
+                    url = link.verification_uri_complete
+                    if '://' not in url:
+                        url = 'https://' + url
+                    parsed = urlsplit(url)
+                    if parsed.scheme != 'https' or parsed.netloc != 'link.tidal.com':
+                        raise ValueError('Unexpected verification URL')
+                except Exception:
+                    raise ValueError('Could not start TIDAL sign-in. Try again or use Hi-Res sign-in.') from None
+                login = self.device_login = DeviceLogin(secrets.token_urlsafe(18), url, session, Future())
+                threading.Thread(target=_wait_for_device_login, args=(session, link, login.result), daemon=True).start()
+            self.pending = None
+            return {'id': login.id, 'url': login.url}
+
+    def check_device_login(self, login_id):
+        with self.lock:
+            login = self.device_login
+            if login is None or login.id != login_id:
+                raise ValueError('Start TIDAL sign-in again.')
+            if not login.result.done():
+                return False
+            if login.session is not self.session:
+                try:
+                    if not login.result.result() or not login.session.check_login():
+                        raise ValueError('Login could not be verified')
+                except TimeoutError:
+                    self.device_login = None
+                    raise ValueError('The TIDAL sign-in link expired. Start again for a new link.') from None
+                except Exception:
+                    self.device_login = None
+                    raise ValueError('TIDAL sign-in failed. Try again or use Hi-Res sign-in.') from None
+                self._activate(login.session)
+            return True
+
+    def _activate(self, session):
+        self.save(session)
+        self.session = session
+        self.connected = True
+
     def begin_login(self):
         with self.lock:
+            self.device_login = None
             self.pending = self.new_session()
             self.pending_at = time.monotonic()
             return self.pending.pkce_login_url()
@@ -79,9 +152,7 @@ class TidalCatalog:
                     raise ValueError('Login could not be verified')
             except Exception:
                 raise ValueError('TIDAL login failed. Start again and paste the new redirect URL.') from None
-            self.save(pending)
-            self.session = pending
-            self.connected = True
+            self._activate(pending)
 
     def search(self, query, types, *, separate_artist_matches):
         models = {'album': tidalapi.Album, 'track': tidalapi.Track, 'artist': tidalapi.Artist}
@@ -131,6 +202,8 @@ class TidalCatalog:
     def resolution(self, id_, *, track):
         with self.lock:
             self.ensure_login()
+            if not self.resolution_available:
+                raise ValueError('Use Hi-Res sign-in to see bit depth and sample rate.')
             id_ = self._id(id_)
             if track:
                 value = self.session.track(id_).get_stream().get_audio_resolution()

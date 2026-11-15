@@ -19,6 +19,9 @@ def create_app(settings=None, restore=False, shutdown=False, *, catalog=None, pl
     app.config.update(MAX_CONTENT_LENGTH=64 * 1024, LOCAL_TOKEN=secrets.token_urlsafe(32))
     catalog = load_catalog(settings) if catalog is None else catalog
     player = load_player(settings) if player is None else player
+    device_login = (catalog.id == 'tidal' and catalog.login_required
+                    and callable(getattr(catalog, 'begin_device_login', None))
+                    and callable(getattr(catalog, 'check_device_login', None)))
     if catalog.id not in player.catalogs:
         raise ValueError(f'{player.name} does not support the {catalog.name} catalog.')
     app.extensions.update(catalog=catalog, player=player, settings=settings)
@@ -66,7 +69,7 @@ def create_app(settings=None, restore=False, shutdown=False, *, catalog=None, pl
     @app.get('/')
     def home():
         return render_template('index.html', token=app.config['LOCAL_TOKEN'],
-                               catalog=catalog, player=player)
+                               catalog=catalog, player=player, device_login=device_login)
 
     @app.post('/api/shutdown')
     def stop():
@@ -84,6 +87,7 @@ def create_app(settings=None, restore=False, shutdown=False, *, catalog=None, pl
         device = player.selected_device
         summary = {key: device.get(key) for key in ('id', 'name', 'host')} if device else None
         return jsonify(catalogConnected=catalog.connected, restoring=catalog.restoring,
+                       catalogResolution=getattr(catalog, 'resolution_available', True),
                        playerDevice=summary, version=__version__,
                        tidal=catalog.connected if catalog.id == 'tidal' else False,
                        wiim=summary.get('host') if summary and player.id == 'wiim' else None,
@@ -108,6 +112,21 @@ def create_app(settings=None, restore=False, shutdown=False, *, catalog=None, pl
             raise ValueError('Invalid redirect URL')
         catalog.finish_login(redirect)
         return jsonify(ok=True)
+
+    @app.post('/api/auth/device/start')
+    def auth_device_start():
+        if not device_login:
+            raise ValueError('This catalog does not support device sign-in.')
+        return jsonify(catalog.begin_device_login())
+
+    @app.post('/api/auth/device/status')
+    def auth_device_status():
+        if not device_login:
+            raise ValueError('This catalog does not support device sign-in.')
+        login_id = request.json.get('id')
+        if not isinstance(login_id, str) or len(login_id) > 64:
+            raise ValueError('Invalid sign-in attempt.')
+        return jsonify(connected=catalog.check_device_login(login_id))
 
     @app.post('/api/wiim/manual')
     @app.post('/api/player/manual')

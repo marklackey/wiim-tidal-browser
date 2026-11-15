@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from threading import Event
 import xml.etree.ElementTree as ET
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -232,6 +233,56 @@ class FirstRunTests(AppTest):
         self.assertEqual(response.status_code, 200)
         self.assertIs(self.catalog.session, pending)
         self.assertEqual(self.app.extensions['settings'].session_file.stat().st_mode & 0o777, 0o600)
+        self.assertTrue(self.client.get('/api/health').json['catalogResolution'])
+
+    def test_device_sign_in_waits_for_approval_and_saves_a_catalog_session(self):
+        approved = Event()
+        self.addCleanup(approved.set)
+        pending = Mock(is_pkce=False, token_type='Bearer', session_id='fake',
+                       access_token='fake', refresh_token='fake')
+        pending.get_link_login.return_value = SimpleNamespace(verification_uri_complete='link.tidal.com/FAKE')
+        pending.process_link_login.side_effect = lambda link: approved.wait(5)
+        pending.check_login.return_value = True
+        pending.search.return_value = {'albums': []}
+        path = self.app.extensions['settings'].session_file
+        self.catalog.connected = False
+
+        with patch.object(self.catalog, 'new_session', return_value=pending):
+            attempt = self.post('/api/auth/device/start', json={}).json
+            self.assertEqual(attempt['url'], 'https://link.tidal.com/FAKE')
+            self.assertEqual(self.post('/api/auth/device/start', json={}).json, attempt)
+        def check(id_):
+            return self.post('/api/auth/device/status', json={'id': id_})
+
+        self.assertEqual(check('another-attempt').status_code, 400)
+        self.assertEqual(check(attempt['id']).json, {'connected': False})
+        self.assertFalse(path.exists())
+        approved.set()
+        self.assertTrue(self.catalog.device_login.result.result(timeout=5))
+        self.assertEqual(check(attempt['id']).json, {'connected': True})
+        self.assertEqual(check(attempt['id']).json, {'connected': True})
+        pending.check_login.assert_called_once_with()
+        self.assertIs(self.catalog.session, pending)
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertFalse(self.client.get('/api/health').json['catalogResolution'])
+        self.assertEqual(self.client.get('/api/track-resolution/123').status_code, 400)
+        self.assertEqual(self.client.get('/api/search?q=test').status_code, 200)
+        pending.search.assert_called_once()
+
+    def test_expired_device_sign_in_preserves_current_session(self):
+        session = self.catalog.session
+        pending = Mock()
+        pending.get_link_login.return_value = SimpleNamespace(verification_uri_complete='https://link.tidal.com/FAKE')
+        pending.process_link_login.side_effect = TimeoutError('private provider diagnostics')
+        with patch.object(self.catalog, 'new_session', return_value=pending):
+            attempt = self.post('/api/auth/device/start', json={}).json
+            self.assertIsInstance(self.catalog.device_login.result.exception(timeout=5), TimeoutError)
+        result = self.post('/api/auth/device/status', json={'id': attempt['id']})
+        self.assertEqual(result.status_code, 400)
+        self.assertIn('expired', result.json['error'])
+        self.assertNotIn('private provider diagnostics', result.json['error'])
+        self.assertIs(self.catalog.session, session)
+        self.assertTrue(self.catalog.connected)
 
 
 class AdapterIntegrationTests(unittest.TestCase):

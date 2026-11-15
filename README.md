@@ -7,8 +7,10 @@ Search and compare TIDAL releases in your browser and play albums or tracks on a
 1. Download the macOS ZIP for your Mac's processor from the release assets and unzip it.
 2. Drag **WiiM TIDAL.app** into **Applications**. Double-click it to open your default browser and start the server in the background.
 3. From the WiiM TIDAL menu bar icon, choose **Local Network Access**, then **Request Access** and choose **Allow** if macOS asks.
-4. In the browser’s **Setup**, choose **Connect TIDAL**, open the sign-in link, then paste the full URL from TIDAL's final redirect page. Click **Finish login**.
+4. In the browser’s **Setup**, choose **Connect TIDAL**. Approve the sign-in on TIDAL’s page and return to Setup. The app connects automatically.
 5. Click **Discover WiiM** and select your device. The Mac and WiiM must be on the same local network. If discovery fails, enter your WiiM's IPv4 address under **Setup → Enter address manually**.
+
+For catalog bit-depth and sample-rate estimates, choose **Hi-Res sign-in** or **Enable Hi-Res details** in Setup. Sign in on TIDAL, paste the full address of the final page into Setup, then choose **Finish login**.
 
 The app includes Python. The native app runs the browser server on the first free port from 8765 through 8774. You can close the browser and the server will keep running. Use **Open in Browser** in the menu bar or double-click the app again to reopen the page. Choose **Quit WiiM TIDAL** in the menu bar or **Setup → Stop server** in the browser to stop it. Locking the screen leaves it running. If the Mac sleeps, the server is unavailable until wake. The browser refreshes playback when it becomes visible again. After restarting the Mac or logging out, open WiiM TIDAL again. Your saved login and device selection are retained. This build is ad hoc signed and has no Apple notarization. macOS may require you to approve a downloaded copy under **System Settings → Privacy & Security**.
 
@@ -31,7 +33,7 @@ Run `wiim-tidal` on subsequent launches. `wiim-tidal serve` runs in the foregrou
 - Playing an album or track replaces the WiiM's current queue after a short countdown. Playback controls and recents are available in the browser.
 - **Discover WiiM** can find a previously selected device at a new address. You can also set `WIIM_HOST` to a private IPv4 address and optionally set `WIIM_UPNP_PORT`.
 - The server listens only on `127.0.0.1`. Your TIDAL session and WiiM selection are saved under `~/Library/Application Support/WiiM TIDAL`. Keep the session file private. Browser recents are stored by the browser.
-- WiiM playback uses an undocumented UPnP service. TIDAL access uses the community [tidalapi](https://github.com/python-tidal/tidalapi) package. Firmware or API changes can affect compatibility.
+- WiiM playback uses an undocumented UPnP service. TIDAL access uses the community [tidalapi](https://github.com/EbbLabs/python-tidal) package. Firmware or API changes can affect compatibility.
 
 If discovery fails, check **System Settings → Privacy & Security → Local Network** for WiiM TIDAL and check that the devices can communicate on the same network. Find your WiiM address in the WiiM Home app if you need manual setup. For the Python command’s server log, see `~/Library/Application Support/WiiM TIDAL/server.log`.
 
@@ -70,3 +72,7 @@ scripts/build-macos.sh
 Build the macOS ZIP on the architecture you plan to support. The build uses Xcode Command Line Tools for Swift. Artifacts appear in `dist/`. Set `MACOS_SIGN_IDENTITY` to use a Developer ID Application certificate for a distribution build. Apple recommends an Apple-issued signing identity so [macOS can reliably track local network permission](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy). The code is split into the local web API, TIDAL authentication and catalog, WiiM transport and discovery, and browser assets. No Node build step is needed.
 
 For existing source users, run `python login.py` once from the installed checkout to copy the legacy session and device settings into the per-user directory without replacing existing settings.
+
+## iPhone app
+
+The [SwiftUI app](ios/README.md) uses the same TIDAL catalog adapter and sign-in flows as the desktop app. Browse grouped releases, filter by artist, album or Hi-Res quality, revisit listening history, and control WiiM with a native player and mini-player. Discover your speaker or enter its IP address. The app reconnects when it returns to the foreground.

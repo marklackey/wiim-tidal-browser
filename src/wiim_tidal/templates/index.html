@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body data-device="unselected" data-catalog-id="{{ catalog.id }}" data-catalog-name="{{ catalog.name }}"
-      data-player-name="{{ player.name }}">
+      data-player-name="{{ player.name }}"{% if device_login %} data-device-login="true"{% endif %}>
     <a class="skip-link" href="#main">Skip to content</a>
     <aside class="sidebar" aria-label="Library">
         <a class="brand" href="#main">
@@ -64,6 +64,10 @@
                     <div class="setup-card-heading"><h3 id="tidalHeading">{{ catalog.name }} account</h3><span class="setup-state" id="tidalSetupState">Checking…</span></div>
                     <p id="tidalSetupStatus" class="muted" role="status">Sign in with your {{ catalog.name }} account.</p>
                     <button id="startLogin" class="secondary" type="button"{% if not catalog.login_required %} hidden{% endif %}>Connect {{ catalog.name }}</button>
+                    <button id="alternateLogin" class="secondary" type="button" hidden>Hi-Res sign-in</button>
+                    <div id="deviceLoginInstructions" hidden>
+                        <p><a id="deviceLoginLink" target="_blank" rel="noopener noreferrer">Open {{ catalog.name }} sign-in ↗</a></p>
+                    </div>
                     <div id="loginInstructions" hidden>
                         <p><a id="loginLink" target="_blank" rel="noopener noreferrer">Open {{ catalog.name }} sign-in ↗</a></p>
                         <p class="muted">After signing in, copy the address of the final page, even if it shows an error.</p>
@@ -73,6 +77,7 @@
                             <button type="submit">Finish login</button>
                         </form>
                     </div>
+                    <button id="cancelLogin" class="secondary" type="button" hidden>Back</button>
                 </section>
                 <section class="setup-card" aria-labelledby="wiimHeading">
                     <div class="setup-card-heading"><h3 id="wiimHeading">{{ player.name }} player</h3><span class="setup-state" id="wiimSetupState">Not selected</span></div>
