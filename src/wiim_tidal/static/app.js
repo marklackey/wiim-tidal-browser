@@ -2,6 +2,7 @@
 const $=s=>document.querySelector(s);
 const catalogName = document.body?.dataset?.catalogName || 'TIDAL';
 const catalogId = document.body?.dataset?.catalogId || 'tidal';
+const deviceLoginSupported = document.body?.dataset?.deviceLogin === 'true';
 const playerName = document.body?.dataset?.playerName || 'WiiM';
 let results = {artist: [], album: [], track: []};
 let active = null;
@@ -19,6 +20,7 @@ async function api(path, options) {
     return data;
 }
 const resolutionCache=new Map();let resolutionObserver=null,drawVersion=0;
+let catalogResolution = !deviceLoginSupported;
 const sectionState=new Map();
 let resultQuery = '';
 function setSectionsOpen(open){$('#results').querySelectorAll('details[data-section]').forEach(section=>{section.open=open;sectionState.set(section.dataset.section,open)})}
@@ -74,7 +76,7 @@ function albumCard(album) {
             <span class="sub">${meta}</span>
             <span class="tags">${qualityBadges(album)}</span>
         </button>
-        <p class="muted" data-resolution>Checking resolution when visible</p>
+        ${catalogResolution ? '<p class="muted" data-resolution>Checking resolution when visible</p>' : ''}
     </article>`;
 }
 
@@ -174,14 +176,14 @@ function draw() {
     $('#results').querySelectorAll('[data-open-album]').forEach(button => {
         button.onclick = () => openAlbum(button.dataset.openAlbum);
     });
+    const cards = $('#results').querySelectorAll('[data-id]');
+    cards.forEach(card => { card.querySelector('button').onclick = () => openAlbum(card.dataset.id); });
+    if (!catalogResolution) return;
     // One background resolution lookup at a time.
     const queue=[];let running=false;
     async function drain(){if(running)return;running=true;try{while(queue.length&&version===drawVersion){const card=queue.shift();if(!card.isConnected)continue;if(card.getClientRects&&!card.getClientRects().length){resolutionObserver.observe(card);continue;}const label=card.querySelector('[data-resolution]');label.textContent='Checking resolution…';try{const r=await fetchResolution(card.dataset.id);if(card.isConnected)label.textContent=resolutionText(r)}catch(e){if(card.isConnected){label.textContent='Resolution unavailable';label.title=e.message}}}}finally{running=false}}
     resolutionObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){resolutionObserver.unobserve(entry.target);queue.push(entry.target)}}drain()},{rootMargin:'150px'});
-    $('#results').querySelectorAll('[data-id]').forEach(card => {
-        card.querySelector('button').onclick = () => openAlbum(card.dataset.id);
-        resolutionObserver.observe(card);
-    });
+    cards.forEach(card => resolutionObserver.observe(card));
 }
 function trackRows(data) {
     return data.tracks.map((track, i) => {
@@ -354,16 +356,16 @@ const trackResolutionCache=new Map();let currentTrackId='';
 function deviceAudio(m,resolution){
     const parts=[];
     if(resolution)parts.push(`${resolution.bits}-bit / ${(resolution.hz/1000).toFixed(1)} kHz`);
-    else parts.push('Track resolution unavailable');
+    else if (catalogResolution) parts.push('Track resolution unavailable');
     const rate=m.bitRate??m.bitrate??m.bit_rate;
     if(Number(rate)>0)parts.push(`Bitrate: ${rate}${m.bitrateUnit?' '+m.bitrateUnit:''}`);
     else parts.push(`Bitrate not reported by ${playerName}`);
     return parts.join(' · ');
 }
 function loadTrackResolution(id,m){
-    if(!/^[A-Za-z0-9._~:-]{1,200}$/.test(id))return;
+    if(!catalogResolution || !/^[A-Za-z0-9._~:-]{1,200}$/.test(id))return;
     if(!trackResolutionCache.has(id))trackResolutionCache.set(id,api('/api/track-resolution/'+encodeURIComponent(id)).catch(error=>{trackResolutionCache.delete(id);throw error}));
-    trackResolutionCache.get(id).then(res=>{if(currentTrackId===id)$('#playingAudio').textContent=deviceAudio(m,res)}).catch(()=>{});
+    trackResolutionCache.get(id).then(res=>{if(catalogResolution&&currentTrackId===id)$('#playingAudio').textContent=deviceAudio(m,res)}).catch(()=>{});
 }
 const transportButtons = ['#previousTrack', '#togglePlayback', '#nextTrack'];
 let transportReady = false, controlBusy = false;
@@ -750,17 +752,120 @@ function showSetup(show, focus = false) {
     if (focus) (show ? $('#setupHeading') : $('#openSetup')).focus();
 }
 
+let catalogConnected = false;
+let loginRestoring = false;
+let loginBusy = false;
+let loginRevision = 0;
+
+function accountStatus() {
+    if (!catalogConnected) return `Sign in with your ${catalogName} account.`;
+    if (deviceLoginSupported && !catalogResolution) {
+        return `${catalogName} is connected. Hi-Res sign-in adds bit depth and sample rate.`;
+    }
+    return `${catalogName} is connected.`;
+}
+
+function loginButtons(busy) {
+    loginBusy = busy;
+    const signingIn = !$('#cancelLogin').hidden;
+    $('#startLogin').disabled = busy || loginRestoring || signingIn;
+    $('#alternateLogin').disabled = busy || loginRestoring || signingIn;
+    $('#cancelLogin').disabled = busy;
+}
+
 function showHealth(health) {
     const device = health.playerDevice ?? {host: health.wiim, name: health.wiimName};
     showDevice(device.host, device.name, device.id);
-    const connected = health.catalogConnected ?? health.tidal;
+    const connected = catalogConnected = health.catalogConnected ?? health.tidal;
+    const resolution = health.catalogResolution ?? true;
+    if (resolution !== catalogResolution) {
+        catalogResolution = resolution;
+        resolutionCache.clear();
+        trackResolutionCache.clear();
+        if (searched) draw();
+    }
     const tidalStatus = health.restoring ? 'Checking…' : connected ? 'Connected' : 'Sign in required';
     setConnectionBadge('#tidalConnectionCard', '#connection', '#tidalSetupState',
         connected ? 'ready' : '', tidalStatus);
-    $('#tidalSetupStatus').textContent = connected ? `${catalogName} is connected.` : `Sign in with your ${catalogName} account.`;
-    $('#startLogin').disabled = Boolean(health.restoring);
+    loginRestoring = Boolean(health.restoring);
+    loginButtons(loginBusy);
+    $('#tidalSetupStatus').textContent = accountStatus();
     $('#startLogin').textContent = connected ? `Reconnect ${catalogName}` : `Connect ${catalogName}`;
+    $('#alternateLogin').hidden = !deviceLoginSupported;
+    $('#alternateLogin').textContent = !connected ? 'Hi-Res sign-in'
+        : resolution ? 'Sign in for browsing' : 'Enable Hi-Res details';
     if (!deviceSelected) $('#playingTitle').textContent = `No ${playerName} selected`;
+}
+
+function clearLogin() {
+    ++loginRevision;
+    $('#loginInstructions').hidden = true;
+    $('#deviceLoginInstructions').hidden = true;
+    $('#cancelLogin').hidden = true;
+    $('#loginLink').removeAttribute('href');
+    $('#deviceLoginLink').removeAttribute('href');
+    $('#redirectUrl').value = '';
+}
+
+async function signInComplete(revision) {
+    const health = await api('/api/health');
+    if (revision !== loginRevision) return;
+    clearLogin();
+    showHealth(health);
+    if (deviceSelected) now(true);
+    if (!$('#setup').hidden) $('#startLogin').focus();
+}
+
+function pollDeviceLogin(id, revision) {
+    setTimeout(async () => {
+        if (revision !== loginRevision) return;
+        try {
+            const {connected} = await api('/api/auth/device/status', {
+                method: 'POST', body: JSON.stringify({id}),
+            });
+            if (revision !== loginRevision) return;
+            if (connected) await signInComplete(revision);
+            else pollDeviceLogin(id, revision);
+        } catch (error) {
+            if (revision !== loginRevision) return;
+            clearLogin();
+            loginButtons(false);
+            $('#tidalSetupStatus').textContent = error.message;
+            if (!$('#setup').hidden) $('#startLogin').focus();
+        }
+    }, 1500);
+}
+
+async function startSignIn(useDeviceLogin) {
+    const popup = deviceLoginSupported ? window.open('about:blank', '_blank') : null;
+    if (popup) popup.opener = null;
+    clearLogin();
+    const revision = loginRevision;
+    loginButtons(true);
+    $('#tidalSetupStatus').textContent = `Starting ${catalogName} sign-in…`;
+    try {
+        const endpoint = useDeviceLogin ? '/api/auth/device/start' : '/api/auth/start';
+        const {id, url} = await api(endpoint, {method:'POST'});
+        const link = $(useDeviceLogin ? '#deviceLoginLink' : '#loginLink');
+        link.href = url;
+        $(useDeviceLogin ? '#deviceLoginInstructions' : '#loginInstructions').hidden = false;
+        $('#cancelLogin').hidden = false;
+        if (useDeviceLogin) {
+            $('#tidalSetupStatus').textContent = `Approve the sign-in on ${catalogName}, then return here.`;
+        } else {
+            $('#tidalSetupStatus').textContent = deviceLoginSupported
+                ? `Sign in to ${catalogName} to see bit depth and sample rate.`
+                : `Open the ${catalogName} sign-in link.`;
+        }
+        link.focus();
+        if (popup && !popup.closed) popup.location.replace(url);
+        if (useDeviceLogin) pollDeviceLogin(id, revision);
+    } catch (error) {
+        if (popup && !popup.closed) popup.close();
+        $('#tidalSetupStatus').textContent = error.message;
+    } finally {
+        loginButtons(false);
+    }
 }
 
 $('#openSetup').onclick = () => showSetup($('#setup').hidden, true);
@@ -771,35 +876,30 @@ $('#exploreNav').onclick = event => {
     showSetup(false);
     $('#query').focus();
 };
-$('#startLogin').onclick = async () => {
-    const button = $('#startLogin');
-    button.disabled = true;
-    try {
-        const {url} = await api('/api/auth/start', {method:'POST'});
-        $('#loginLink').href = url;
-        $('#loginInstructions').hidden = false;
-        $('#loginLink').focus();
-    } catch (error) {
-        $('#tidalSetupStatus').textContent = error.message;
-    } finally {
-        button.disabled = false;
-    }
+$('#startLogin').onclick = () => startSignIn(deviceLoginSupported && !(catalogConnected && catalogResolution));
+$('#alternateLogin').onclick = () => startSignIn(catalogConnected && catalogResolution);
+$('#cancelLogin').onclick = () => {
+    clearLogin();
+    loginButtons(false);
+    $('#tidalSetupStatus').textContent = accountStatus();
+    $('#startLogin').focus();
 };
 $('#loginForm').onsubmit = async event => {
     event.preventDefault();
     const input = $('#redirectUrl');
     const button = event.currentTarget.querySelector('button');
+    const revision = loginRevision;
+    loginButtons(true);
     button.disabled = true;
     $('#tidalSetupStatus').textContent = `Connecting to ${catalogName}…`;
     try {
         await api('/api/auth/finish', {method:'POST', body:JSON.stringify({redirect:input.value.trim()})});
-        input.value = '';
-        $('#loginInstructions').hidden = true;
-        showHealth(await api('/api/health'));
+        await signInComplete(revision);
     } catch (error) {
         $('#tidalSetupStatus').textContent = error.message;
     } finally {
         button.disabled = false;
+        loginButtons(false);
     }
 };
 $('#manualDevice').onsubmit = async event => {

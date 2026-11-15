@@ -40,6 +40,6 @@ fi
 /usr/bin/codesign --verify --deep --strict "$app"
 "$app/Contents/MacOS/WiiM TIDAL" --version
 archive="WiiM-TIDAL-$version-macos-$architecture.zip"
-/usr/bin/ditto -c -k --keepParent "$app" "$work/$archive"
+/usr/bin/ditto -c -k --norsrc --noextattr --noacl --keepParent "$app" "$work/$archive"
 mv -f "$work/$archive" "dist/$archive"
 echo "Created dist/WiiM-TIDAL-$version-macos-$architecture.zip"

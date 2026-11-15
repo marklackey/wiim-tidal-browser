@@ -1,0 +1,320 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+        E00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiiMActivity.swift; sourceTree = "<group>"; };
+        E00000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenPlayer.swift; sourceTree = "<group>"; };
+        E00000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiiMActivityWidget.swift; sourceTree = "<group>"; };
+        E00000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+        E00000000000000000000005 = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WiiMWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+        E00000000000000000000006 = {isa = PBXGroup; children = (E00000000000000000000003, E00000000000000000000004); path = WiiMWidget; sourceTree = "<group>"; };
+        E00000000000000000000007 = {isa = PBXBuildFile; fileRef = E00000000000000000000001; };
+        E00000000000000000000008 = {isa = PBXBuildFile; fileRef = E00000000000000000000002; };
+        E00000000000000000000009 = {isa = PBXBuildFile; fileRef = E00000000000000000000001; };
+        E0000000000000000000000A = {isa = PBXBuildFile; fileRef = E00000000000000000000003; };
+        E0000000000000000000000B = {isa = PBXBuildFile; fileRef = E00000000000000000000005; settings = {ATTRIBUTES = (RemoveHeadersOnCopy); }; };
+        E0000000000000000000000C = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (E00000000000000000000009, E0000000000000000000000A); runOnlyForDeploymentPostprocessing = 0; };
+        E0000000000000000000000D = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        E0000000000000000000000E = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (E0000000000000000000000B); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
+        E0000000000000000000000F = {isa = PBXContainerItemProxy; containerPortal = A0000000000000000000000C; proxyType = 1; remoteGlobalIDString = E00000000000000000000011; remoteInfo = WiiMWidget; };
+        E00000000000000000000010 = {isa = PBXTargetDependency; target = E00000000000000000000011; targetProxy = E0000000000000000000000F; };
+        E00000000000000000000011 = {isa = PBXNativeTarget; buildConfigurationList = E00000000000000000000014; buildPhases = (E0000000000000000000000C, E0000000000000000000000D); buildRules = (); dependencies = (); name = WiiMWidget; productName = WiiMWidget; productReference = E00000000000000000000005; productType = "com.apple.product-type.app-extension"; };
+        E00000000000000000000014 = {isa = XCConfigurationList; buildConfigurations = (E00000000000000000000012, E00000000000000000000013); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+        E00000000000000000000012 = {isa = XCBuildConfiguration; buildSettings = {
+            APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = 3P2GG657X7;
+            CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = WiiMWidget/Info.plist;
+            INFOPLIST_KEY_CFBundleDisplayName = "WiiM Player"; IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+            LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+            MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = org.wiimtidal.browser.ios.player;
+            PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SKIP_INSTALL = YES;
+            SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0;
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WIDGET_EXTENSION";
+            SWIFT_OPTIMIZATION_LEVEL = "-Onone"; TARGETED_DEVICE_FAMILY = 1;
+        }; name = Debug; };
+        E00000000000000000000013 = {isa = XCBuildConfiguration; buildSettings = {
+            APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = 3P2GG657X7;
+            CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = WiiMWidget/Info.plist;
+            INFOPLIST_KEY_CFBundleDisplayName = "WiiM Player"; IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+            LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+            MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = org.wiimtidal.browser.ios.player;
+            PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SKIP_INSTALL = YES;
+            SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0;
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WIDGET_EXTENSION";
+            SWIFT_OPTIMIZATION_LEVEL = "-O"; TARGETED_DEVICE_FAMILY = 1;
+        }; name = Release; };
+
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000001 /* WiiMTIDALApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* WiiMTIDALApp.swift */; };
+		A00000000000000000000002 /* WiiMClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* WiiMClient.swift */; };
+		A00000000000000000000020 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* Catalog.swift */; };
+		A00000000000000000000021 /* CatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* CatalogView.swift */; };
+		A00000000000000000000022 /* PythonCatalog.m in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* PythonCatalog.m */; };
+		A00000000000000000000023 /* Python.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* Python.xcframework */; };
+		A00000000000000000000029 /* Python.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* Python.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		B00000000000000000000100 /* PlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000000; };
+		B00000000000000000000101 /* PlayerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001; };
+		B00000000000000000000102 /* SearchResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002; };
+		B00000000000000000000103 /* WiiMDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003; };
+		B00000000000000000000104 = {isa = PBXBuildFile; fileRef = B00000000000000000000004; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A0000000000000000000002A /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (A00000000000000000000029 /* Python.xcframework in Embed Frameworks */, );
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000003 /* WiiMTIDALApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiiMTIDALApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000004 /* WiiMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiiMClient.swift; sourceTree = "<group>"; };
+		A00000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A00000000000000000000006 /* WiiMTIDAL.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WiiMTIDAL.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000024 /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
+		A00000000000000000000025 /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
+		A00000000000000000000026 /* PythonCatalog.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PythonCatalog.m; sourceTree = "<group>"; };
+		A00000000000000000000027 /* PythonCatalog.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PythonCatalog.h; sourceTree = "<group>"; };
+		A00000000000000000000028 /* Python.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Python.xcframework; path = .python/Python.xcframework; sourceTree = "<group>"; };
+		B00000000000000000000000 /* PlayerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000001 /* PlayerViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViews.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* SearchResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResultsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* WiiMDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiiMDiscovery.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A0000000000000000000002B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (A00000000000000000000023 /* Python.xcframework in Frameworks */, );
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000008 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000009 /* WiiMTIDAL */, E00000000000000000000006,
+				A00000000000000000000028 /* Python.xcframework */,
+				A0000000000000000000000A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000009 /* WiiMTIDAL */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000003 /* WiiMTIDALApp.swift */, E00000000000000000000001, E00000000000000000000002,
+				B00000000000000000000004 /* Assets.xcassets */,
+				B00000000000000000000003 /* WiiMDiscovery.swift */,
+				B00000000000000000000002 /* SearchResultsView.swift */,
+				B00000000000000000000001 /* PlayerViews.swift */,
+				B00000000000000000000000 /* PlayerModel.swift */,
+				A00000000000000000000004 /* WiiMClient.swift */,
+				A00000000000000000000024 /* Catalog.swift */,
+				A00000000000000000000025 /* CatalogView.swift */,
+				A00000000000000000000026 /* PythonCatalog.m */,
+				A00000000000000000000027 /* PythonCatalog.h */,
+				A00000000000000000000005 /* Info.plist */,
+			);
+			path = WiiMTIDAL;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000000A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000006 /* WiiMTIDAL.app */, E00000000000000000000005,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A0000000000000000000000B /* WiiMTIDAL */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000011 /* Build configuration list for PBXNativeTarget "WiiMTIDAL" */;
+			buildPhases = (
+				A00000000000000000000007 /* Sources */,
+				B00000000000000000000204 /* Resources */,
+				A0000000000000000000002B /* Frameworks */,
+				A0000000000000000000002C /* Bundle Python catalog */,
+				A0000000000000000000002A /* Embed Frameworks */, E0000000000000000000000E,
+			);
+			buildRules = (
+			);
+			dependencies = (E00000000000000000000010);
+			name = WiiMTIDAL;
+			productName = WiiMTIDAL;
+			productReference = A00000000000000000000006 /* WiiMTIDAL.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A0000000000000000000000C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+			};
+			buildConfigurationList = A00000000000000000000010 /* Build configuration list for PBXProject "WiiMTIDAL" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A00000000000000000000008;
+			productRefGroup = A0000000000000000000000A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A0000000000000000000000B /* WiiMTIDAL */, E00000000000000000000011,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A0000000000000000000002C /* Bundle Python catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			name = "Bundle Python catalog";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "bash \"$PROJECT_DIR/bundle-python.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+        B00000000000000000000204 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (B00000000000000000000104); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000001 /* WiiMTIDALApp.swift in Sources */, E00000000000000000000007, E00000000000000000000008,
+				B00000000000000000000103 /* WiiMDiscovery.swift in Sources */,
+				B00000000000000000000102 /* SearchResultsView.swift in Sources */,
+				B00000000000000000000101 /* PlayerViews.swift in Sources */,
+				B00000000000000000000100 /* PlayerModel.swift in Sources */,
+				A00000000000000000000002 /* WiiMClient.swift in Sources */,
+				A00000000000000000000020 /* Catalog.swift in Sources */,
+				A00000000000000000000021 /* CatalogView.swift in Sources */,
+				A00000000000000000000022 /* PythonCatalog.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000012 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+			};
+			name = Debug;
+		};
+		A00000000000000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+			};
+			name = Release;
+		};
+		A00000000000000000000014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3P2GG657X7;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WiiMTIDAL/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "WiiM TIDAL";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connect to your WiiM to show what’s playing and control playback.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.wiimtidal.browser.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_OBJC_BRIDGING_HEADER = WiiMTIDAL/PythonCatalog.h;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A00000000000000000000015 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3P2GG657X7;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WiiMTIDAL/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "WiiM TIDAL";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connect to your WiiM to show what’s playing and control playback.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.wiimtidal.browser.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OBJC_BRIDGING_HEADER = WiiMTIDAL/PythonCatalog.h;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000010 /* Build configuration list for PBXProject "WiiMTIDAL" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000012 /* Debug */,
+				A00000000000000000000013 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000011 /* Build configuration list for PBXNativeTarget "WiiMTIDAL" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000014 /* Debug */,
+				A00000000000000000000015 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A0000000000000000000000C /* Project object */;
+}

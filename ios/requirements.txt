@@ -1,0 +1,13 @@
+tidalapi==0.8.11
+isodate==0.7.2
+mpegdash==0.4.1
+pyaes==1.6.1
+python-dateutil==2.9.0.post0
+ratelimit==2.2.1
+requests==2.34.2
+typing-extensions==4.16.0
+charset-normalizer==3.5.2
+certifi==2026.10.23
+idna==3.20
+six==1.17.0
+urllib3==2.8.0
